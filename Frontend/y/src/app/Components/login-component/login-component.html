@@ -1,0 +1,145 @@
+<div class="login-page">
+
+  <div class="login-card">
+
+    <div class="login-header">
+
+      <h1>Parking Management System</h1>
+
+      <p>
+        Sign in to your account
+      </p>
+
+    </div>
+
+    <form
+      [formGroup]="loginForm"
+      (ngSubmit)="onLogin()">
+
+      <!-- Email -->
+
+      <div class="form-group">
+
+        <label for="email">
+          Email
+        </label>
+
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="Enter your email">
+
+        <div
+          class="validation-error"
+          *ngIf="email?.touched && email?.invalid">
+
+          <span *ngIf="email?.errors?.['required']">
+            Email is required
+          </span>
+
+          <span *ngIf="email?.errors?.['email']">
+            Enter a valid email address
+          </span>
+
+        </div>
+
+      </div>
+
+      <!-- Password -->
+
+      <div class="form-group">
+
+        <label for="password">
+          Password
+        </label>
+
+        <div class="password-wrapper">
+
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Enter your password">
+
+          <button
+            type="button"
+            class="show-btn"
+            (click)="togglePassword()">
+
+            {{ showPassword ? 'Hide' : 'Show' }}
+
+          </button>
+
+        </div>
+
+        <div
+          class="validation-error"
+          *ngIf="password?.touched && password?.invalid">
+
+          <span *ngIf="password?.errors?.['required']">
+            Password is required
+          </span>
+
+          <span *ngIf="password?.errors?.['minlength']">
+            Password must contain at least 6 characters
+          </span>
+
+        </div>
+
+      </div>
+
+      <!-- Remember Me -->
+
+      <div class="remember-container">
+
+        <label>
+
+          <input
+            type="checkbox"
+            formControlName="rememberMe">
+
+          Remember Me
+
+        </label>
+
+      </div>
+
+      
+      <!-- Error Message -->
+
+      <div
+        class="server-error"
+        *ngIf="errorMessage">
+
+        {{ errorMessage }}
+
+      </div>
+
+      <!-- Login Button -->
+
+      <button
+        type="submit"
+        class="login-btn"
+        [disabled]="isLoading">
+
+        {{ isLoading ? 'Logging In...' : 'Login' }}
+
+      </button>
+
+      <!-- Register Button -->
+
+      <button
+        type="button"
+        class="register-btn"
+        (click)="navigateToRegister()">
+
+        Register
+
+      </button>
+
+    </form>
+
+  </div>
+
+</div>

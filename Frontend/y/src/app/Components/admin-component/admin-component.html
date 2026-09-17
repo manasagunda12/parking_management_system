@@ -1,0 +1,398 @@
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Admin Panel</h2>
+    </div>
+    <nav>
+      <ul>
+        <li [class.active]="activeSection === 'dashboard'" (click)="setSection('dashboard')">📊 Dashboard</li>
+        <li [class.active]="activeSection === 'users'" (click)="setSection('users')">👥 Users & Operators</li>
+        <li [class.active]="activeSection === 'lots'" (click)="setSection('lots')">🏢 Parking Lots</li>
+        <li [class.active]="activeSection === 'spaces'" (click)="setSection('spaces')">🅿️ Parking Spaces</li>
+        <li [class.active]="activeSection === 'sessions'" (click)="setSection('sessions')">🚗 Sessions</li>
+        <li [class.active]="activeSection === 'reservations'" (click)="setSection('reservations')">📅 Reservations</li>
+        <li [class.active]="activeSection === 'payments'" (click)="setSection('payments')">💳 Payments</li>
+        <li [class.active]="activeSection === 'invoices'" (click)="setSection('invoices')">🧾 Invoices</li>
+        <li [class.active]="activeSection === 'vehicles'" (click)="setSection('vehicles')">🚙 Vehicles</li>
+      </ul>
+    </nav>
+    <button class="logout-btn" (click)="logout()">Logout</button>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <div class="success-msg" *ngIf="successMessage">{{ successMessage }}</div>
+    <div class="error-msg" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <!-- ── Dashboard ── -->
+    <section *ngIf="activeSection === 'dashboard'">
+      <h1>Dashboard</h1>
+      <div class="cards">
+        <div class="card blue">
+          <span class="card-count">{{ totalUsers }}</span>
+          <span class="card-label">Total Users</span>
+        </div>
+        <div class="card green">
+          <span class="card-count">{{ totalLots }}</span>
+          <span class="card-label">Parking Lots</span>
+        </div>
+        <div class="card orange">
+          <span class="card-count">{{ totalSessions }}</span>
+          <span class="card-label">Sessions</span>
+        </div>
+        <div class="card purple">
+          <span class="card-count">{{ totalReservations }}</span>
+          <span class="card-label">Reservations</span>
+        </div>
+        <div class="card teal">
+          <span class="card-count">{{ totalPayments }}</span>
+          <span class="card-label">Payments</span>
+        </div>
+        <div class="card red">
+          <span class="card-count">{{ totalVehicles }}</span>
+          <span class="card-label">Vehicles</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Users & Operators ── -->
+    <section *ngIf="activeSection === 'users'">
+      <div class="section-header">
+        <h1>Users & Operators</h1>
+        <button class="btn-primary" (click)="showOperatorForm = !showOperatorForm">
+          {{ showOperatorForm ? 'Cancel' : '+ Create Operator' }}
+        </button>
+      </div>
+
+      <div class="form-card" *ngIf="showOperatorForm">
+        <h3>Create Operator</h3>
+        <form [formGroup]="operatorForm" (ngSubmit)="submitOperator()">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" formControlName="name" placeholder="Full name">
+              <span class="err" *ngIf="operatorForm.get('name')?.touched && operatorForm.get('name')?.invalid">Name is required</span>
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" formControlName="email" placeholder="Email">
+              <span class="err" *ngIf="operatorForm.get('email')?.touched && operatorForm.get('email')?.invalid">Valid email required</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="tel" formControlName="phoneNumber" placeholder="Phone number">
+              <span class="err" *ngIf="operatorForm.get('phoneNumber')?.touched && operatorForm.get('phoneNumber')?.invalid">Valid phone (10-15 digits)</span>
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" formControlName="password" placeholder="Password">
+              <span class="err" *ngIf="operatorForm.get('password')?.touched && operatorForm.get('password')?.invalid">Min 6 characters</span>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" [disabled]="isLoading">
+            {{ isLoading ? 'Creating...' : 'Create Operator' }}
+          </button>
+        </form>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>{{ user.userId }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phoneNumber }}</td>
+            <td><span class="badge" [ngClass]="user.role.toLowerCase()">{{ user.role }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── Parking Lots ── -->
+    <section *ngIf="activeSection === 'lots'">
+      <div class="section-header">
+        <h1>Parking Lots</h1>
+        <button class="btn-primary" (click)="openCreateLot()">+ Add Parking Lot</button>
+      </div>
+
+      <div class="form-card" *ngIf="showLotForm">
+        <h3>{{ editingLot ? 'Edit Parking Lot' : 'Create Parking Lot' }}</h3>
+        <form [formGroup]="lotForm" (ngSubmit)="submitLot()">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" formControlName="name" placeholder="Lot name">
+              <span class="err" *ngIf="lotForm.get('name')?.touched && lotForm.get('name')?.invalid">Name is required</span>
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" formControlName="location" placeholder="Location">
+              <span class="err" *ngIf="lotForm.get('location')?.touched && lotForm.get('location')?.invalid">Location is required</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Total Slots</label>
+              <input type="number" formControlName="totalSlots" placeholder="Total slots">
+              <span class="err" *ngIf="lotForm.get('totalSlots')?.touched && lotForm.get('totalSlots')?.invalid">Min 1 required</span>
+            </div>
+            <div class="form-group">
+              <label>Number of Floors</label>
+              <input type="number" formControlName="numberOfFloors" placeholder="Floors">
+              <span class="err" *ngIf="lotForm.get('numberOfFloors')?.touched && lotForm.get('numberOfFloors')?.invalid">Min 1 required</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Saving...' : (editingLot ? 'Update' : 'Create') }}
+            </button>
+            <button type="button" class="btn-secondary" (click)="showLotForm = false; editingLot = null">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Location</th><th>Total Slots</th><th>Available Slots</th><th>Floors</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let lot of parkingLots">
+            <td>{{ lot.lotId }}</td>
+            <td>{{ lot.name }}</td>
+            <td>{{ lot.location }}</td>
+            <td>{{ lot.totalSlots }}</td>
+            <td>{{ lot.availableSlots }}</td>
+            <td>{{ lot.numberOfFloors }}</td>
+            <td class="actions">
+              <button class="btn-edit" (click)="openEditLot(lot)">Edit</button>
+              <button class="btn-delete" (click)="deleteLot(lot.lotId)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── Parking Spaces ── -->
+    <section *ngIf="activeSection === 'spaces'">
+      <div class="section-header">
+        <h1>Parking Spaces</h1>
+        <button class="btn-primary" (click)="showSpaceForm = !showSpaceForm">
+          {{ showSpaceForm ? 'Cancel' : '+ Create Spaces' }}
+        </button>
+      </div>
+
+      <div class="form-card" *ngIf="showSpaceForm">
+        <h3>Create Parking Spaces</h3>
+        <form [formGroup]="spaceForm" (ngSubmit)="submitSpaces()">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Select Parking Lot</label>
+              <select formControlName="lotId">
+                <option value="">-- Select Lot --</option>
+                <option *ngFor="let lot of parkingLots" [value]="lot.lotId">{{ lot.name }}</option>
+              </select>
+              <span class="err" *ngIf="spaceForm.get('lotId')?.touched && spaceForm.get('lotId')?.invalid">Select a lot</span>
+            </div>
+            <div class="form-group">
+              <label>Total Slots</label>
+              <input type="number" formControlName="totalSlots" placeholder="Total slots">
+              <span class="err" *ngIf="spaceForm.get('totalSlots')?.touched && spaceForm.get('totalSlots')?.invalid">Min 1 required</span>
+            </div>
+            <div class="form-group">
+              <label>Number of Floors</label>
+              <input type="number" formControlName="numberOfFloors" placeholder="Floors">
+              <span class="err" *ngIf="spaceForm.get('numberOfFloors')?.touched && spaceForm.get('numberOfFloors')?.invalid">Min 1 required</span>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" [disabled]="isLoading">
+            {{ isLoading ? 'Creating...' : 'Create Spaces' }}
+          </button>
+        </form>
+      </div>
+
+      <div class="form-group filter-select">
+        <label>View Spaces for Lot</label>
+        <select (change)="loadSpacesByLot(+$any($event.target).value)">
+          <option value="">-- Select Lot --</option>
+          <option *ngFor="let lot of parkingLots" [value]="lot.lotId">{{ lot.name }}</option>
+        </select>
+      </div>
+
+      <table class="data-table" *ngIf="parkingSpaces.length > 0">
+        <thead>
+          <tr><th>ID</th><th>Space Name</th><th>Floor</th><th>Type</th><th>Status</th><th>Update Status</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let space of parkingSpaces">
+            <td>{{ space.spaceId }}</td>
+            <td>{{ space.spaceName }}</td>
+            <td>{{ space.floor }}</td>
+            <td>{{ space.vehicleType }}</td>
+            <td><span class="badge" [ngClass]="space.status?.toLowerCase()">{{ space.status }}</span></td>
+            <td>
+              <select (change)="updateSpaceStatus(space.spaceId, $any($event.target).value)">
+                <option value="">-- Change --</option>
+                <option value="Available">Available</option>
+                <option value="Occupied">Occupied</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="parkingSpaces.length === 0 && selectedLotId">No spaces found for this lot.</p>
+    </section>
+
+    <!-- ── Sessions ── -->
+    <section *ngIf="activeSection === 'sessions'">
+      <h1>Parking Sessions</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Vehicle</th><th>Space</th><th>Entry Time</th><th>Exit Time</th><th>Duration</th><th>Amount</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sessions">
+            <td>{{ s.sessionId }}</td>
+            <td>{{ s.vehicleNumber }}</td>
+            <td>{{ s.spaceName }}</td>
+            <td>{{ s.entryTime | date:'short' }}</td>
+            <td>{{ s.exitTime ? (s.exitTime | date:'short') : '—' }}</td>
+            <td>{{ s.duration ?? '—' }} hr(s)</td>
+            <td>{{ s.amount != null ? ('₹' + s.amount) : '—' }}</td>
+            <td><span class="badge" [ngClass]="s.status?.toLowerCase()">{{ s.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="sessions.length === 0">No sessions found.</p>
+    </section>
+
+    <!-- ── Reservations ── -->
+    <section *ngIf="activeSection === 'reservations'">
+      <h1>Reservations</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>User ID</th><th>Space ID</th><th>Start Time</th><th>End Time</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of reservations">
+            <td>{{ r.reservationId }}</td>
+            <td>{{ r.userId }}</td>
+            <td>{{ r.spaceId }}</td>
+            <td>{{ r.startTime | date:'short' }}</td>
+            <td>{{ r.endTime | date:'short' }}</td>
+            <td><span class="badge" [ngClass]="r.status?.toLowerCase()">{{ r.status }}</span></td>
+            <td>
+              <button class="btn-delete" *ngIf="r.status !== 'Cancelled'" (click)="cancelReservation(r.reservationId)">Cancel</button>
+              <span *ngIf="r.status === 'Cancelled'">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="reservations.length === 0">No reservations found.</p>
+    </section>
+
+    <!-- ── Payments ── -->
+    <section *ngIf="activeSection === 'payments'">
+      <h1>Payments</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Session ID</th><th>Amount</th><th>Method</th><th>Status</th><th>Paid At</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of payments">
+            <td>{{ p.paymentId }}</td>
+            <td>{{ p.sessionId }}</td>
+            <td>₹{{ p.amount }}</td>
+            <td>{{ p.paymentMethod ?? '—' }}</td>
+            <td><span class="badge" [ngClass]="p.status?.toLowerCase()">{{ p.status }}</span></td>
+            <td>{{ p.paidAt ? (p.paidAt | date:'short') : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="payments.length === 0">No payments found.</p>
+    </section>
+
+    <!-- ── Invoices ── -->
+    <section *ngIf="activeSection === 'invoices'">
+      <h1>Invoices</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Payment ID</th><th>Space</th><th>Lot</th><th>Method</th><th>Amount</th><th>Generated At</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let inv of invoices" (click)="viewInvoice(inv.invoiceId)" style="cursor:pointer">
+            <td>{{ inv.invoiceId }}</td>
+            <td>{{ inv.paymentId }}</td>
+            <td>{{ inv.spaceName || '—' }}</td>
+            <td>{{ inv.lotName || '—' }}</td>
+            <td>{{ inv.paymentMethod || '—' }}</td>
+            <td>₹{{ inv.totalAmount }}</td>
+            <td>{{ inv.date | date:'short' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="invoices.length === 0">No invoices found.</p>
+
+      <div class="generate-invoice">
+        <h3>Generate Invoice by Payment ID</h3>
+        <div class="inline-form">
+          <input type="number" #paymentIdInput placeholder="Enter Payment ID">
+          <button class="btn-primary" (click)="generateInvoice(+paymentIdInput.value)">Generate</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Vehicles ── -->
+    <section *ngIf="activeSection === 'vehicles'">
+      <h1>Vehicles</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Vehicle Number</th><th>Type</th><th>Owner ID</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let v of vehicles">
+            <td>{{ v.vehicleId }}</td>
+            <td>{{ v.vehicleNumber }}</td>
+            <td>{{ v.vehicleType }}</td>
+            <td>{{ v.userId }}</td>
+            <td>
+              <button class="btn-delete" (click)="deleteVehicle(v.vehicleId)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="vehicles.length === 0">No vehicles found.</p>
+    </section>
+
+  </main>
+
+  <!-- Invoice Detail Modal -->
+  <div class="modal-overlay" *ngIf="selectedInvoice" (click)="closeInvoice()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>🧾 Invoice #{{ selectedInvoice.invoiceId }}</h3>
+      <p class="receipt-summary">
+        You paid <strong>₹{{ selectedInvoice.totalAmount }}</strong>
+        for parking at <strong>{{ selectedInvoice.spaceName || '—' }}</strong>,
+        {{ selectedInvoice.lotName || '—' }}.
+      </p>
+      <hr />
+      <div class="modal-row"><span>Invoice ID</span><strong>#{{ selectedInvoice.invoiceId }}</strong></div>
+      <div class="modal-row"><span>Payment ID</span><strong>{{ selectedInvoice.paymentId }}</strong></div>
+      <div class="modal-row"><span>Space</span><strong>{{ selectedInvoice.spaceName || '—' }}</strong></div>
+      <div class="modal-row"><span>Lot</span><strong>{{ selectedInvoice.lotName || '—' }}</strong></div>
+      <div class="modal-row"><span>Payment Method</span><strong>{{ selectedInvoice.paymentMethod || '—' }}</strong></div>
+      <div class="modal-row"><span>Amount Paid</span><strong>₹{{ selectedInvoice.totalAmount }}</strong></div>
+      <div class="modal-row"><span>Generated At</span><strong>{{ selectedInvoice.date | date:'medium' }}</strong></div>
+      <button class="btn-primary" style="margin-top:16px;width:100%" (click)="closeInvoice()">Close</button>
+    </div>
+  </div>
+
+</div>

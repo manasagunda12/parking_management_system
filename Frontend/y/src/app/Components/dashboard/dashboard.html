@@ -1,0 +1,352 @@
+<div class="dashboard-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="avatar">{{ customerName.charAt(0) }}</div>
+      <p class="customer-name">{{ customerName }}</p>
+      <p class="role-label">Customer</p>
+    </div>
+    <nav>
+      <ul>
+        <li [class.active]="activeSection === 'map'" (click)="setSection('map')">🗺️ Parking Map</li>
+        <li [class.active]="activeSection === 'vehicles'" (click)="setSection('vehicles')">🚗 My Vehicles</li>
+        <li [class.active]="activeSection === 'reservations'" (click)="setSection('reservations')">📋 My Reservations</li>
+        <li [class.active]="activeSection === 'payments'" (click)="setSection('payments')">💳 Payments</li>
+        <li [class.active]="activeSection === 'invoice'" (click)="setSection('invoice')">🧾 Invoice</li>
+      </ul>
+    </nav>
+    <button class="logout-btn" (click)="logout()">Logout</button>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <div class="success-msg" *ngIf="successMessage">{{ successMessage }}</div>
+    <div class="error-msg" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- ── Parking Map ── -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'map'">
+
+      <!-- Lot Selector -->
+      <div class="map-top-bar">
+        <div>
+          <h1>Parking Map</h1>
+          <p class="map-subtitle">Select a lot and floor to view real-time slot availability</p>
+        </div>
+        <div class="refresh-badge">🔄 Auto-refresh every 15s</div>
+      </div>
+
+      <!-- Lot Cards -->
+      <div class="lot-selector">
+        <div
+          class="lot-card"
+          *ngFor="let lot of parkingLots"
+          [class.lot-active]="selectedLot?.lotId === lot.lotId"
+          (click)="selectLot(lot)">
+          <div class="lot-card-name">{{ lot.name }}</div>
+          <div class="lot-card-location">📍 {{ lot.location }}</div>
+          <div class="lot-card-stats">
+            <span class="stat-available">{{ lot.availableSlots }} free</span>
+            <span class="stat-total">/ {{ lot.totalSlots }} total</span>
+          </div>
+          <div class="lot-progress-bar">
+            <div
+              class="lot-progress-fill"
+              [style.width.%]="((lot.totalSlots - lot.availableSlots) / lot.totalSlots) * 100">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floor Tabs + Legend -->
+      <div class="map-controls" *ngIf="selectedLot">
+        <div class="floor-tabs">
+          <button
+            *ngFor="let f of floors"
+            class="floor-tab"
+            [class.floor-tab-active]="selectedFloor === f"
+            (click)="selectFloor(f)">
+            Floor {{ f }}
+          </button>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-box available-box"></span> Available</span>
+          <span class="legend-item"><span class="legend-box reserved-box"></span> Reserved</span>
+          <span class="legend-item"><span class="legend-box occupied-box"></span> Occupied</span>
+          <span class="legend-item"><span class="legend-box selected-box"></span> Selected</span>
+        </div>
+      </div>
+
+      <!-- Floor Stats -->
+      <div class="floor-stats" *ngIf="selectedLot && !mapLoading">
+        <div class="fstat green">✅ {{ availableCount }} Available</div>
+        <div class="fstat orange">🔒 {{ reservedCount }} Reserved</div>
+        <div class="fstat red">🚗 {{ occupiedCount }} Occupied</div>
+        <div class="fstat blue">📊 {{ floorSpaces.length }} Total</div>
+      </div>
+
+      <!-- Loading -->
+      <div class="map-loading" *ngIf="mapLoading">
+        <div class="spinner"></div>
+        <p>Loading parking spaces...</p>
+      </div>
+
+      <!-- Parking Grid -->
+      <div class="parking-map" *ngIf="selectedLot && !mapLoading">
+
+        <!-- Entrance indicator -->
+        <div class="entrance-bar">
+          <span>🚦 ENTRANCE / EXIT</span>
+        </div>
+
+        <!-- Driving Lane + Spaces -->
+        <div class="parking-grid">
+          <div
+            class="space-slot"
+            *ngFor="let space of floorSpaces"
+            [ngClass]="getSpaceClass(space)"
+            (click)="selectSpace(space)"
+            [title]="space.spaceName + ' - ' + space.status + (space.spaceType ? ' (' + space.spaceType + ')' : '')">
+            <span class="space-icon">{{ getSpaceIcon(space) }}</span>
+            <span class="space-name">{{ space.spaceName }}</span>
+            <span class="space-type">{{ space.spaceType }}</span>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <p class="empty-msg" *ngIf="floorSpaces.length === 0">No spaces found on this floor.</p>
+      </div>
+
+      <!-- Selected Space Action Panel -->
+      <div class="action-panel" *ngIf="selectedSpace">
+        <div class="action-panel-info">
+          <div class="action-space-name">Space: <strong>{{ selectedSpace.spaceName }}</strong></div>
+          <div class="action-space-detail">Floor {{ selectedSpace.floorNumber }} &bull; {{ selectedSpace.spaceType }}</div>
+          <span class="badge available">Available</span>
+        </div>
+        <div class="action-panel-buttons">
+          <button class="btn-book" (click)="openBookModal()">🅿️ Book Now</button>
+          <button class="btn-reserve" (click)="openReserveModal()">📅 Reserve</button>
+          <button class="btn-cancel-sel" (click)="selectedSpace = null">✕ Deselect</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- ── My Vehicles ── -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'vehicles'">
+      <div class="section-header">
+        <h1>My Vehicles</h1>
+        <button class="btn-primary" (click)="openAddVehicle()">+ Add Vehicle</button>
+      </div>
+
+      <div class="form-card" *ngIf="showVehicleForm">
+        <h3>{{ editingVehicle ? 'Edit Vehicle' : 'Add Vehicle' }}</h3>
+        <form [formGroup]="vehicleForm" (ngSubmit)="submitVehicle()">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vehicle Number</label>
+              <input type="text" formControlName="vehicleNumber" placeholder="e.g. MH12AB1234">
+              <span class="err" *ngIf="vehicleForm.get('vehicleNumber')?.touched && vehicleForm.get('vehicleNumber')?.invalid">Required</span>
+            </div>
+            <div class="form-group">
+              <label>Vehicle Type</label>
+              <select formControlName="vehicleType">
+                <option value="Car">Car</option>
+                <option value="Bike">Bike</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Saving...' : (editingVehicle ? 'Update' : 'Add') }}
+            </button>
+            <button type="button" class="btn-secondary" (click)="showVehicleForm = false">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="vehicle-grid" *ngIf="vehicles.length > 0">
+        <div class="vehicle-card" *ngFor="let v of vehicles">
+          <div class="vehicle-icon">{{ v.vehicleType === 'Bike' ? '🏍️' : '🚗' }}</div>
+          <div class="vehicle-info">
+            <p class="vehicle-number">{{ v.vehicleNumber }}</p>
+            <span class="badge" [ngClass]="v.vehicleType.toLowerCase()">{{ v.vehicleType }}</span>
+          </div>
+          <div class="vehicle-actions">
+            <button class="btn-edit" (click)="openEditVehicle(v)">Edit</button>
+            <button class="btn-delete" (click)="deleteVehicle(v.vehicleId)">Delete</button>
+          </div>
+        </div>
+      </div>
+      <p class="empty-msg" *ngIf="vehicles.length === 0 && !showVehicleForm">No vehicles added yet.</p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- ── My Reservations ── -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'reservations'">
+      <h1>My Reservations</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Vehicle</th><th>Space</th><th>Start</th><th>End</th><th>Fee</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of myReservations">
+            <td>{{ r.reservationId }}</td>
+            <td>{{ r.vehicleNumber }}</td>
+            <td>{{ r.spaceName }}</td>
+            <td>{{ r.startTime | date:'short' }}</td>
+            <td>{{ r.endTime | date:'short' }}</td>
+            <td>₹{{ r.reservationFee }}</td>
+            <td><span class="badge" [ngClass]="r.status?.toLowerCase()">{{ r.status }}</span></td>
+            <td>
+              <button class="btn-delete" *ngIf="r.status === 'Confirmed'" (click)="cancelReservation(r.reservationId)">Cancel</button>
+              <span *ngIf="r.status !== 'Confirmed'">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="myReservations.length === 0">No reservations found.</p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- ── Payments ── -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'payments'">
+      <h1>💳 Payments</h1>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Session ID</th><th>Amount</th><th>Method</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of myPayments">
+            <td>{{ p.paymentId }}</td>
+            <td>{{ p.sessionId }}</td>
+            <td>₹{{ p.amount }}</td>
+            <td>
+              <select *ngIf="p.status !== 'Success'" [(ngModel)]="p.paymentMethod">
+                <option value="Cash">Cash</option>
+                <option value="Card">Card</option>
+                <option value="UPI">UPI</option>
+              </select>
+              <span *ngIf="p.status === 'Success'">{{ p.paymentMethod }}</span>
+            </td>
+            <td><span class="badge" [ngClass]="p.status?.toLowerCase()">{{ p.status }}</span></td>
+            <td>
+              <button class="btn-pay" *ngIf="p.status !== 'Success'" (click)="payNow(p.paymentId, p.paymentMethod || 'Cash')">Pay Now</button>
+              <span *ngIf="p.status === 'Success'">✅ Paid</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="myPayments.length === 0">No pending payments. Payments appear here after your vehicle exits.</p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- ── Invoice ── -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'invoice'">
+      <h1>🧾 My Invoices</h1>
+
+      <p class="empty-msg" *ngIf="myInvoices.length === 0">No invoices found. Invoices are generated after payment.</p>
+
+      <div *ngFor="let inv of myInvoices" class="invoice-card">
+        <div class="invoice-header">
+          <h2>🧾 Invoice</h2>
+          <span class="invoice-id">#{{ inv.invoiceId }}</span>
+        </div>
+        <p style="margin: 8px 0 12px">
+          You paid <strong>₹{{ inv.totalAmount }}</strong>
+          <span *ngIf="inv.spaceName"> for parking at <strong>{{ inv.spaceName }}</strong></span>
+          <span *ngIf="inv.lotName">, {{ inv.lotName }}</span>.
+        </p>
+        <div class="invoice-row"><span>Payment ID</span><span>{{ inv.paymentId }}</span></div>
+        <div class="invoice-row"><span>Space</span><span>{{ inv.spaceName || '—' }}</span></div>
+        <div class="invoice-row"><span>Lot</span><span>{{ inv.lotName || '—' }}</span></div>
+        <div class="invoice-row"><span>Payment Method</span><span>{{ inv.paymentMethod || '—' }}</span></div>
+        <div class="invoice-row"><span>Amount Paid</span><span>₹{{ inv.totalAmount }}</span></div>
+        <div class="invoice-row"><span>Generated At</span><span>{{ inv.date | date:'medium' }}</span></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- Book Modal -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showBookModal" (click)="showBookModal = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3>🅿️ Confirm Booking</h3>
+    <div class="modal-info">
+      <div class="modal-row"><span>Space</span><strong>{{ selectedSpace?.spaceName }}</strong></div>
+      <div class="modal-row"><span>Floor</span><strong>{{ selectedSpace?.floorNumber }}</strong></div>
+      <div class="modal-row"><span>Type</span><strong>{{ selectedSpace?.spaceType }}</strong></div>
+      <div class="modal-row"><span>Lot</span><strong>{{ selectedLot?.name }}</strong></div>
+    </div>
+    <div class="form-group" style="margin-top: 16px;">
+      <label>Select Vehicle</label>
+      <select [(ngModel)]="selectedVehicleId">
+        <option *ngFor="let v of vehicles" [value]="v.vehicleId">{{ v.vehicleNumber }} ({{ v.vehicleType }})</option>
+      </select>
+    </div>
+    <p class="modal-note">⚠️ The operator will mark your slot as occupied when you arrive.</p>
+    <div class="modal-actions">
+      <button class="btn-book" (click)="confirmBooking()" [disabled]="isLoading">
+        {{ isLoading ? 'Booking...' : 'Confirm Booking' }}
+      </button>
+      <button class="btn-secondary" (click)="showBookModal = false">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- Reserve Modal -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showReserveModal" (click)="showReserveModal = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3>📅 Reserve Space</h3>
+    <div class="modal-info">
+      <div class="modal-row"><span>Space</span><strong>{{ selectedSpace?.spaceName }}</strong></div>
+      <div class="modal-row"><span>Lot</span><strong>{{ selectedLot?.name }}</strong></div>
+      <div class="modal-row"><span>Rate</span><strong>₹50 / hour</strong></div>
+    </div>
+    <form [formGroup]="reserveForm" style="margin-top: 16px;">
+      <div class="form-group">
+        <label>Select Vehicle</label>
+        <select formControlName="vehicleId">
+          <option *ngFor="let v of vehicles" [value]="v.vehicleId">{{ v.vehicleNumber }} ({{ v.vehicleType }})</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Time</label>
+          <input type="datetime-local" formControlName="startTime"
+            [min]="reserveForm.get('startTime')?.value"
+            [max]="reserveForm.get('maxDate')?.value">
+          <span class="err" *ngIf="reserveForm.get('startTime')?.touched && reserveForm.get('startTime')?.invalid">Required</span>
+        </div>
+        <div class="form-group">
+          <label>End Time</label>
+          <input type="datetime-local" formControlName="endTime"
+            [max]="reserveForm.get('maxDate')?.value">
+          <span class="err" *ngIf="reserveForm.get('endTime')?.touched && reserveForm.get('endTime')?.invalid">Required</span>
+        </div>
+      </div>
+      <p class="modal-note">⚠️ Reservations can be made up to 1 day in advance only.</p>
+    </form>
+    <div class="modal-actions">
+      <button class="btn-reserve" (click)="confirmReservation()" [disabled]="isLoading">
+        {{ isLoading ? 'Reserving...' : 'Confirm Reservation' }}
+      </button>
+      <button class="btn-secondary" (click)="showReserveModal = false">Cancel</button>
+    </div>
+  </div>
+</div>

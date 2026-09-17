@@ -1,0 +1,272 @@
+<div class="operator-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="avatar">{{ operatorName.charAt(0) }}</div>
+      <p class="op-name">{{ operatorName }}</p>
+      <p class="role-label">Operator</p>
+    </div>
+    <nav>
+      <ul>
+        <li [class.active]="activeSection === 'map'" (click)="setSection('map')">🗺️ Parking Map</li>
+        <li [class.active]="activeSection === 'sessions'" (click)="setSection('sessions')">🚗 Sessions</li>
+        <li [class.active]="activeSection === 'reservations'" (click)="setSection('reservations')">📋 Reservations</li>
+        <li [class.active]="activeSection === 'invoice'" (click)="setSection('invoice')">🧾 Generate Invoice</li>
+      </ul>
+    </nav>
+    <button class="logout-btn" (click)="logout()">Logout</button>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <div class="success-msg" *ngIf="successMessage">{{ successMessage }}</div>
+    <div class="error-msg" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- Parking Map -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'map'">
+
+      <div class="map-top-bar">
+        <div>
+          <h1>Parking Map</h1>
+          <p class="map-subtitle">Live view of all parking spaces — auto-refreshes every 15s</p>
+        </div>
+        <div class="refresh-badge">🔄 Auto-refresh every 15s</div>
+      </div>
+
+      <!-- Lot Cards -->
+      <div class="lot-selector">
+        <div
+          class="lot-card"
+          *ngFor="let lot of parkingLots"
+          [class.lot-active]="selectedLot?.lotId === lot.lotId"
+          (click)="selectLot(lot)">
+          <div class="lot-card-name">{{ lot.name }}</div>
+          <div class="lot-card-location">📍 {{ lot.location }}</div>
+          <div class="lot-card-stats">
+            <span class="stat-available">{{ lot.availableSlots }} free</span>
+            <span class="stat-total">/ {{ lot.totalSlots }} total</span>
+          </div>
+          <div class="lot-progress-bar">
+            <div
+              class="lot-progress-fill"
+              [style.width.%]="((lot.totalSlots - lot.availableSlots) / lot.totalSlots) * 100">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floor Tabs + Legend -->
+      <div class="map-controls" *ngIf="selectedLot">
+        <div class="floor-tabs">
+          <button
+            *ngFor="let f of floors"
+            class="floor-tab"
+            [class.floor-tab-active]="selectedFloor === f"
+            (click)="selectFloor(f)">
+            Floor {{ f }}
+          </button>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-box available-box"></span> Available</span>
+          <span class="legend-item"><span class="legend-box reserved-box"></span> Reserved</span>
+          <span class="legend-item"><span class="legend-box occupied-box"></span> Occupied</span>
+        </div>
+      </div>
+
+      <!-- Floor Stats -->
+      <div class="floor-stats" *ngIf="selectedLot && !mapLoading">
+        <div class="fstat green">✅ {{ availableCount }} Available</div>
+        <div class="fstat orange">🔒 {{ reservedCount }} Reserved</div>
+        <div class="fstat red">🚗 {{ occupiedCount }} Occupied</div>
+        <div class="fstat blue">📊 {{ floorSpaces.length }} Total</div>
+      </div>
+
+      <!-- Loading -->
+      <div class="map-loading" *ngIf="mapLoading">
+        <div class="spinner"></div>
+        <p>Loading parking spaces...</p>
+      </div>
+
+      <!-- Parking Grid -->
+      <div class="parking-map" *ngIf="selectedLot && !mapLoading">
+        <div class="entrance-bar">🚦 ENTRANCE / EXIT</div>
+        <div class="parking-grid">
+          <div
+            class="space-slot"
+            *ngFor="let space of floorSpaces"
+            [ngClass]="getSpaceClass(space)">
+            <span class="space-icon">{{ getSpaceIcon(space) }}</span>
+            <span class="space-name">{{ space.spaceName }}</span>
+            <span class="space-type">{{ space.spaceType }}</span>
+            <!-- Operator can update status directly from map -->
+            <select
+              class="status-select"
+              (change)="updateSpaceStatus(space.spaceId, $any($event.target).value)"
+              (click)="$event.stopPropagation()">
+              <option value="">Change</option>
+              <option value="Available">Available</option>
+              <option value="Reserved">Reserved</option>
+              <option value="Occupied">Occupied</option>
+            </select>
+          </div>
+        </div>
+        <p class="empty-msg" *ngIf="floorSpaces.length === 0">No spaces found on this floor.</p>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- Sessions -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'sessions'">
+      <div class="section-header">
+        <h1>Parking Sessions</h1>
+        <button class="btn-refresh" (click)="loadSessions()">🔄 Refresh</button>
+      </div>
+
+      <!-- Active Sessions (Reserved / Occupied) -->
+      <h3 class="sub-heading">Active Sessions</h3>
+      <div class="session-cards">
+        <ng-container *ngFor="let s of sessions">
+          <div class="session-card" *ngIf="s.status !== 'Completed'" [ngClass]="s.status?.toLowerCase()">
+            <div class="session-top">
+              <span class="session-id">#{{ s.sessionId }}</span>
+              <span class="badge" [ngClass]="s.status?.toLowerCase()">{{ s.status }}</span>
+            </div>
+            <div class="session-vehicle">🚗 {{ s.vehicleNumber }}</div>
+            <div class="session-space">🅿️ {{ s.spaceName }}</div>
+            <div class="session-time" *ngIf="s.entryTime">⏱️ Entry: {{ s.entryTime }}</div>
+            <div class="session-time" *ngIf="!s.entryTime">⏳ Awaiting arrival</div>
+            <div class="session-actions">
+              <button
+                class="btn-occupy"
+                *ngIf="s.status === 'Reserved'"
+                (click)="occupySlot(s.sessionId)"
+                [disabled]="isLoading">
+                🚗 Mark Entry
+              </button>
+              <button
+                class="btn-exit"
+                *ngIf="s.status === 'Occupied'"
+                (click)="exitVehicle(s.sessionId)"
+                [disabled]="isLoading">
+                🚪 Process Exit
+              </button>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+      <p class="empty-msg" *ngIf="sessions.filter(s => s.status !== 'Completed').length === 0">No active sessions.</p>
+
+      <!-- Completed Sessions -->
+      <h3 class="sub-heading" style="margin-top: 28px;">Completed Sessions</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Vehicle</th><th>Space</th><th>Entry</th><th>Exit</th><th>Duration</th><th>Amount</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sessions" [style.display]="s.status === 'Completed' ? '' : 'none'">
+            <td>{{ s.sessionId }}</td>
+            <td>{{ s.vehicleNumber }}</td>
+            <td>{{ s.spaceName }}</td>
+            <td>{{ s.entryTime }}</td>
+            <td>{{ s.exitTime }}</td>
+            <td>{{ s.duration }} hr(s)</td>
+            <td>₹{{ s.amount }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="sessions.filter(s => s.status === 'Completed').length === 0">No completed sessions yet.</p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- Reservations -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'reservations'">
+      <div class="section-header">
+        <h1>Reservations</h1>
+        <button class="btn-refresh" (click)="loadReservations()">🔄 Refresh</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>Customer</th><th>Vehicle</th><th>Space</th><th>Start</th><th>End</th><th>Fee</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of reservations">
+            <td>{{ r.reservationId }}</td>
+            <td>{{ r.userName }}</td>
+            <td>{{ r.vehicleNumber }}</td>
+            <td>{{ r.spaceName }}</td>
+            <td>{{ r.startTime | date:'short' }}</td>
+            <td>{{ r.endTime | date:'short' }}</td>
+            <td>₹{{ r.reservationFee }}</td>
+            <td><span class="badge" [ngClass]="r.status?.toLowerCase()">{{ r.status }}</span></td>
+            <td>
+              <button class="btn-occupy" *ngIf="r.status === 'Confirmed'" (click)="checkInReservation(r.reservationId)" [disabled]="isLoading">✅ Check In</button>
+              <button class="btn-cancel" *ngIf="r.status === 'Confirmed'" (click)="cancelReservation(r.reservationId)">❌ Cancel</button>
+              <span *ngIf="r.status !== 'Confirmed'">{{ r.status }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty-msg" *ngIf="reservations.length === 0">No reservations found.</p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- Generate Invoice -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <section *ngIf="activeSection === 'invoice'">
+      <h1>Generate Invoice</h1>
+      <div class="form-card">
+        <h3>Generate Invoice by Payment ID</h3>
+        <p class="form-hint">Enter the Payment ID after the customer has made a payment to generate their invoice.</p>
+        <div class="inline-form">
+          <input type="number" [(ngModel)]="invoicePaymentId" placeholder="Enter Payment ID">
+          <button class="btn-primary" (click)="generateInvoice()" [disabled]="isLoading">
+            {{ isLoading ? 'Generating...' : '🧾 Generate Invoice' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="invoice-card" *ngIf="generatedInvoice">
+        <div class="invoice-header">
+          <h2>🧾 Invoice Generated</h2>
+          <span class="invoice-id">#{{ generatedInvoice.invoiceId }}</span>
+        </div>
+        <div class="invoice-row"><span>Payment ID</span><span>{{ generatedInvoice.paymentId }}</span></div>
+        <div class="invoice-row"><span>Space</span><span>{{ generatedInvoice.spaceName || '-' }}</span></div>
+        <div class="invoice-row"><span>Lot</span><span>{{ generatedInvoice.lotName || '-' }}</span></div>
+        <div class="invoice-row"><span>Payment Method</span><span>{{ generatedInvoice.paymentMethod || '-' }}</span></div>
+        <div class="invoice-row"><span>Amount</span><span>₹{{ generatedInvoice.totalAmount }}</span></div>
+        <div class="invoice-row"><span>Generated At</span><span>{{ generatedInvoice.date | date:'medium' }}</span></div>
+        <div class="invoice-success">✅ Invoice successfully generated and sent to customer.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- Exit Result Modal -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showExitModal" (click)="showExitModal = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3>🚪 Vehicle Exit Summary</h3>
+    <div class="modal-info" *ngIf="exitResult">
+      <div class="modal-row"><span>Session ID</span><strong>#{{ exitResult.sessionId }}</strong></div>
+      <div class="modal-row"><span>Vehicle</span><strong>{{ exitResult.vehicleNumber }}</strong></div>
+      <div class="modal-row"><span>Space</span><strong>{{ exitResult.spaceName }}</strong></div>
+      <div class="modal-row"><span>Entry Time</span><strong>{{ exitResult.entryTime }}</strong></div>
+      <div class="modal-row"><span>Exit Time</span><strong>{{ exitResult.exitTime }}</strong></div>
+      <div class="modal-row"><span>Duration</span><strong>{{ exitResult.duration }} hr(s)</strong></div>
+      <div class="modal-row amount-row"><span>Amount Due</span><strong>₹{{ exitResult.amount }}</strong></div>
+    </div>
+    <div class="exit-message">{{ exitResult?.message }}</div>
+    <div class="modal-note">💡 Ask the customer to make payment using their dashboard.</div>
+    <button class="btn-primary" style="margin-top: 16px; width: 100%;" (click)="showExitModal = false">Close</button>
+  </div>
+</div>

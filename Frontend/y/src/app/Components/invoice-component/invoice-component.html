@@ -1,0 +1,76 @@
+<div class="invoice-container">
+  <h2>My Invoices</h2>
+
+  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="success">{{ successMessage }}</div>
+
+  <!-- Admin/Operator: Generate Invoice -->
+  <div *ngIf="role === 'Admin' || role === 'Operator'">
+    <h3>Generate Invoice</h3>
+    <input type="number" [(ngModel)]="paymentId" placeholder="Enter Payment ID" />
+    <button (click)="generateInvoice()">Generate</button>
+
+    <div *ngIf="invoice" class="invoice-card">
+      <h3>🧾 Invoice Receipt</h3>
+      <p class="receipt-summary">
+        You paid <strong>₹{{ invoice.totalAmount }}</strong>
+        <span *ngIf="invoice.spaceName"> for parking at <strong>{{ invoice.spaceName }}</strong></span>
+        <span *ngIf="invoice.lotName">, {{ invoice.lotName }}</span>.
+      </p>
+      <hr />
+      <p><strong>Invoice ID:</strong> {{ invoice.invoiceId }}</p>
+      <p><strong>Payment ID:</strong> {{ invoice.paymentId }}</p>
+      <p><strong>Payment Method:</strong> {{ invoice.paymentMethod }}</p>
+      <p><strong>Date:</strong> {{ invoice.date | date: 'medium' }}</p>
+      <p><strong>Amount Paid:</strong> ₹{{ invoice.totalAmount }}</p>
+    </div>
+  </div>
+
+  <!-- Admin: All Invoices Table -->
+  <div *ngIf="role === 'Admin' && allInvoices.length > 0">
+    <h3>All Invoices</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice ID</th>
+          <th>Payment ID</th>
+          <th>Space</th>
+          <th>Lot</th>
+          <th>Method</th>
+          <th>Date</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let inv of allInvoices">
+          <td>{{ inv.invoiceId }}</td>
+          <td>{{ inv.paymentId }}</td>
+          <td>{{ inv.spaceName || '-' }}</td>
+          <td>{{ inv.lotName || '-' }}</td>
+          <td>{{ inv.paymentMethod || '-' }}</td>
+          <td>{{ inv.date | date: 'medium' }}</td>
+          <td>₹{{ inv.totalAmount }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Customer: My Invoice Receipts -->
+  <div *ngIf="role === 'Customer'">
+    <p *ngIf="myInvoices.length === 0">No invoices found.</p>
+
+    <div *ngFor="let inv of myInvoices" class="invoice-card">
+      <h3>🧾 Invoice #{{ inv.invoiceId }}</h3>
+      <p class="receipt-summary">
+        You paid <strong>₹{{ inv.totalAmount }}</strong>
+        <span *ngIf="inv.spaceName"> for parking at <strong>{{ inv.spaceName }}</strong></span>
+        <span *ngIf="inv.lotName">, {{ inv.lotName }}</span>.
+      </p>
+      <hr />
+      <p><strong>Payment ID:</strong> {{ inv.paymentId }}</p>
+      <p><strong>Payment Method:</strong> {{ inv.paymentMethod || '-' }}</p>
+      <p><strong>Date:</strong> {{ inv.date | date: 'medium' }}</p>
+      <p><strong>Amount Paid:</strong> ₹{{ inv.totalAmount }}</p>
+    </div>
+  </div>
+</div>

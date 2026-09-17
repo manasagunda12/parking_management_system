@@ -1,0 +1,107 @@
+<div class="register-page">
+
+  <div class="register-card">
+
+    <div class="register-header">
+
+      <h1>Parking Management System</h1>
+
+      <p>Create your account</p>
+
+    </div>
+
+    <form
+      [formGroup]="registerForm"
+      (ngSubmit)="onRegister()">
+
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          placeholder="Enter full name">
+
+        <div class="validation-error" *ngIf="name?.touched && name?.invalid">
+          <span *ngIf="name?.errors?.['required']">Name is required</span>
+          <span *ngIf="name?.errors?.['minlength']">Minimum 2 characters required</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="Enter email">
+
+        <div class="validation-error" *ngIf="email?.touched && email?.invalid">
+          <span *ngIf="email?.errors?.['required']">Email is required</span>
+          <span *ngIf="email?.errors?.['email']">Invalid email</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="phoneNumber">Phone Number</label>
+        <input
+          id="phoneNumber"
+          type="tel"
+          formControlName="phoneNumber"
+          placeholder="Enter phone number">
+
+        <div class="validation-error" *ngIf="phoneNumber?.touched && phoneNumber?.invalid">
+          <span *ngIf="phoneNumber?.errors?.['required']">Phone number is required</span>
+          <span *ngIf="phoneNumber?.errors?.['pattern']">Enter a valid phone number (10 to 15 digits)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Enter password">
+
+          <button type="button" class="show-btn" (click)="togglePassword()">
+            {{ showPassword ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+
+        <div class="validation-error" *ngIf="password?.touched && password?.invalid">
+          <span *ngIf="password?.errors?.['required']">Password is required</span>
+          <span *ngIf="password?.errors?.['minlength']">Password must contain at least 6 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          id="confirmPassword"
+          [type]="showPassword ? 'text' : 'password'"
+          formControlName="confirmPassword"
+          placeholder="Confirm password">
+
+        <div class="validation-error" *ngIf="confirmPassword?.touched && confirmPassword?.invalid">
+          <span *ngIf="confirmPassword?.errors?.['required']">Confirm password is required</span>
+        </div>
+      </div>
+
+      <div class="server-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <button class="register-btn" type="submit" [disabled]="isLoading">
+        {{ isLoading ? 'Registering...' : 'Register' }}
+      </button>
+
+      <button type="button" class="login-btn" (click)="navigateToLogin()">
+        Back To Login
+      </button>
+    </form>
+
+  </div>
+
+</div>

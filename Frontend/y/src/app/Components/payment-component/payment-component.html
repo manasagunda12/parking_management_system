@@ -1,0 +1,61 @@
+<div class="payment-container">
+  <h2>My Payments</h2>
+
+  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="success">{{ successMessage }}</div>
+
+  <p *ngIf="payments.length === 0">No payments found.</p>
+
+  <table *ngIf="payments.length > 0">
+    <thead>
+      <tr>
+        <th>Payment ID</th>
+        <th>Session ID</th>
+        <th>Amount</th>
+        <th>Method</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let p of payments">
+        <td>{{ p.paymentId }}</td>
+        <td>{{ p.sessionId }}</td>
+        <td>₹{{ p.amount }}</td>
+        <td>{{ p.paymentMethod }}</td>
+        <td>{{ p.status }}</td>
+        <td>
+          <ng-container *ngIf="p.status === 'Pending'; else paid">
+            <select [(ngModel)]="selectedPaymentMethod[p.paymentId]">
+              <option value="" disabled selected>Select Method</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="UPI">UPI</option>
+              <option value="NetBanking">NetBanking</option>
+            </select>
+            <button (click)="makePayment(p.paymentId)" [disabled]="loading">
+              {{ loading ? 'Processing...' : 'Pay Now' }}
+            </button>
+          </ng-container>
+          <ng-template #paid>
+            <span class="paid-badge">Paid</span>
+          </ng-template>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Invoice Receipt shown after payment -->
+  <div *ngIf="invoice" class="invoice-receipt">
+    <h3>🧾 Payment Receipt</h3>
+    <p>You have paid <strong>₹{{ invoice.totalAmount }}</strong> for parking at
+      <strong>{{ invoice.spaceName }}</strong>, {{ invoice.lotName }}.
+    </p>
+    <hr />
+    <p><strong>Invoice ID:</strong> {{ invoice.invoiceId }}</p>
+    <p><strong>Payment ID:</strong> {{ invoice.paymentId }}</p>
+    <p><strong>Payment Method:</strong> {{ invoice.paymentMethod }}</p>
+    <p><strong>Date:</strong> {{ invoice.date | date: 'medium' }}</p>
+    <p><strong>Amount Paid:</strong> ₹{{ invoice.totalAmount }}</p>
+  </div>
+</div>
